@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bumblebee Simulator</title>
+<meta name="description" content="Fly a real bumblebee species across a meadow, forage nectar and pollen, and raise your colony through the season.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="game" aria-label="Bumblebee Simulator game view"></canvas>
+
+<!-- ====================== In-flight HUD ====================== -->
+<div id="hud" class="hidden" aria-live="off">
+  <div class="hud-panel hud-left">
+    <div class="gauge">
+      <span class="gauge-label">Nectar</span>
+      <div class="bar"><div class="fill fill-nectar" id="bar-nectar"></div></div>
+      <span class="gauge-value" id="val-nectar">0 / 0 mg</span>
+    </div>
+    <div class="gauge">
+      <span class="gauge-label">Pollen</span>
+      <div class="bar"><div class="fill fill-pollen" id="bar-pollen"></div></div>
+      <span class="gauge-value" id="val-pollen">0 / 0 mg</span>
+    </div>
+    <div class="gauge">
+      <span class="gauge-label">Energy</span>
+      <div class="bar"><div class="fill fill-energy" id="bar-energy"></div></div>
+      <span class="gauge-value" id="val-energy">100%</span>
+    </div>
+    <div class="gauge">
+      <span class="gauge-label">Thorax</span>
+      <div class="bar"><div class="fill fill-thorax" id="bar-thorax"></div></div>
+      <span class="gauge-value" id="val-thorax">30 &deg;C</span>
+    </div>
+  </div>
+
+  <div class="hud-panel hud-right">
+    <div class="hud-row"><span class="hud-key">Day</span><span id="val-day">1 / 7</span></div>
+    <div class="hud-row"><span class="hud-key">Time</span><span id="val-clock">05:00</span></div>
+    <div class="hud-row"><span class="hud-key">Air</span><span id="val-temp">8 &deg;C</span></div>
+    <div class="hud-row"><span class="hud-key">Sky</span><span id="val-weather">Clear</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-row"><span class="hud-key">Workers</span><span id="val-workers">0</span></div>
+    <div class="hud-row"><span class="hud-key">Larvae</span><span id="val-larvae">0</span></div>
+    <div class="hud-row"><span class="hud-key">New queens</span><span id="val-gynes">0 / 3</span></div>
+    <div class="hud-row"><span class="hud-key">Score</span><span id="val-score">0</span></div>
+  </div>
+
+  <div id="species-tag" class="hidden"></div>
+  <div id="prompt" class="hidden"></div>
+  <div id="toast-stack"></div>
+  <div id="streak" class="hidden"></div>
+  <div id="debug" class="hidden"></div>
+</div>
+
+<!-- ====================== Touch controls ====================== -->
+<div id="touch" class="hidden">
+  <div id="stick"><div id="stick-knob"></div></div>
+  <div id="touch-buttons">
+    <button class="touch-btn" data-action="probe" type="button">Land<br>Feed</button>
+    <button class="touch-btn" data-action="buzz" type="button">Buzz</button>
+    <button class="touch-btn" data-action="sip" type="button">Sip</button>
+    <button class="touch-btn" data-action="pause" type="button">II</button>
+  </div>
+</div>
+
+<!-- ====================== Screens ====================== -->
+<div id="overlay">
+
+  <!-- Title -->
+  <section id="screen-title" class="screen">
+    <div class="sheet sheet-narrow">
+      <p class="eyebrow">A field-guide flight simulator</p>
+      <h1>Bumblebee<span>Simulator</span></h1>
+      <p class="lede">
+        You are a bumblebee queen founding a colony. Fly the meadow, drink nectar,
+        carry pollen home in your baskets and raise workers before the season closes.
+        Five real species &mdash; and each one can reach different flowers.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-play" type="button">Choose your species</button>
+        <button class="btn" id="btn-guide" type="button">How to play</button>
+      </div>
+      <p class="best-line" id="best-line"></p>
+    </div>
+  </section>
+
+  <!-- How to play -->
+  <section id="screen-guide" class="screen hidden">
+    <div class="sheet">
+      <h2>How to play</h2>
+      <div class="guide-grid">
+        <div class="guide-block">
+          <h3>Controls</h3>
+          <dl class="keys">
+            <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></dt><dd>Fly</dd>
+            <dt><kbd>Space</kbd></dt><dd>Hold near a flower to land and drink. Hold at the nest to unload.</dd>
+            <dt><kbd>Shift</kbd></dt><dd>Vibrate your flight muscles: shakes the pollen out of bittersweet nightshade, and warms you up when you are too cold to fly.</dd>
+            <dt><kbd>Q</kbd></dt><dd>Sip your own stored nectar to restore energy.</dd>
+            <dt><kbd>P</kbd> / <kbd>Esc</kbd></dt><dd>Pause</dd>
+            <dt><kbd>M</kbd></dt><dd>Mute sound</dd>
+            <dt><kbd>F3</kbd></dt><dd>Debug overlay</dd>
+          </dl>
+        </div>
+        <div class="guide-block">
+          <h3>Being a real bumblebee</h3>
+          <ul class="bullets">
+            <li><b>Your tongue decides your menu.</b> A corolla deeper than your tongue simply cannot be drained. Foxglove is 16&nbsp;mm deep, and a Fuchsia is 19&nbsp;mm &mdash; which only the giant Patagonian bumblebee can empty. The buff-tailed bumblebee, with its 8&nbsp;mm tongue, has to bite its way in instead.</li>
+            <li><b>Cold muscles cannot fly.</b> Below 30&nbsp;&deg;C in the thorax you are grounded. Shiver with <kbd>Shift</kbd> to warm up &mdash; it burns energy, so do not waste it.</li>
+            <li><b>Buzz pollination.</b> Bittersweet nightshade offers no nectar at all and locks its pollen inside tube-shaped anthers. Honeybees cannot get it out; you can, by vibrating.</li>
+            <li><b>Flower constancy.</b> Visiting the same species again and again pollinates it properly and scores far more.</li>
+            <li><b>Watch pale flowers.</b> Crab spiders sit on them, colour-matched and waiting.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-guide-back" type="button">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Species select -->
+  <section id="screen-species" class="screen hidden">
+    <div class="sheet sheet-wide">
+      <h2>Select your species</h2>
+      <p class="sub">Every stat below is taken from the real animal. Tongue length is the one that changes your game the most.</p>
+      <div id="species-cards" class="species-cards"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-start" type="button" disabled>Take off</button>
+        <button class="btn" id="btn-species-back" type="button">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="screen-pause" class="screen hidden">
+    <div class="sheet sheet-narrow">
+      <h2>Paused</h2>
+      <div id="pause-stats" class="stat-list"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-resume" type="button">Resume</button>
+        <button class="btn" id="btn-quit" type="button">Give up the nest</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- End of day -->
+  <section id="screen-report" class="screen hidden">
+    <div class="sheet">
+      <p class="eyebrow" id="report-eyebrow">Dusk</p>
+      <h2 id="report-title">Day 1 complete</h2>
+      <p class="sub" id="report-note"></p>
+      <div class="report-cols">
+        <div>
+          <h3>Foraging</h3>
+          <div id="report-forage" class="stat-list"></div>
+        </div>
+        <div>
+          <h3>The colony</h3>
+          <div id="report-colony" class="stat-list"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-next-day" type="button">Sleep until dawn</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Game over / win -->
+  <section id="screen-gameover" class="screen hidden">
+    <div class="sheet sheet-narrow">
+      <p class="eyebrow" id="over-eyebrow">The season ends</p>
+      <h2 id="over-title">Colony lost</h2>
+      <p class="sub" id="over-note"></p>
+      <div id="over-stats" class="stat-list"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-again" type="button">Fly again</button>
+        <button class="btn" id="btn-title" type="button">Main menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loading -->
+  <section id="screen-loading" class="screen hidden">
+    <div class="sheet sheet-narrow center">
+      <h2>Growing fur&hellip;</h2>
+      <p class="sub" id="loading-note">Drawing every hair on your thorax.</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- Load order matters: each file attaches itself to window.BB.
+     Plain scripts (not ES modules) so the game also runs from file:// -->
+<script src="js/util.js"></script>
+<script src="js/species.js"></script>
+<script src="js/flora.js"></script>
+<script src="js/art.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/colony.js"></script>
+<script src="js/world.js"></script>
+<script src="js/bee.js"></script>
+<script src="js/hazards.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

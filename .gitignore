@@ -1,0 +1,12 @@
+# Screenshots written by tools/smoke-test.mjs --shots
+.smoke-shots/
+
+# The game has no dependencies; these only ever appear from dev tooling
+node_modules/
+package-lock.json
+
+# Editor and OS noise
+.DS_Store
+.vscode/
+.idea/
+*.swp
