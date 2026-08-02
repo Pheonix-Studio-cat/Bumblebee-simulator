@@ -499,19 +499,34 @@ ul.bullets b { color: var(--paper); }
   right: 20px;
   bottom: 22px;
   display: grid;
-  grid-template-columns: repeat(2, 74px);
+  grid-template-columns: repeat(2, 84px);
   gap: 10px;
   pointer-events: auto;
 }
 .touch-btn {
-  height: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 66px;
+  padding: 4px;
   border-radius: 12px;
   border: 1px solid rgba(247, 241, 226, 0.24);
   background: rgba(16, 14, 10, 0.42);
   color: var(--paper);
-  font: 600 12px/1.25 var(--font);
+  font: 600 12px/1.2 var(--font);
   touch-action: none;
 }
+/* These are hold controls, not taps, and the label has to say so. */
+.touch-btn small {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(247, 241, 226, 0.5);
+}
+.touch-btn.held small { color: rgba(42, 32, 5, 0.7); }
 .touch-btn.held {
   background: rgba(242, 181, 46, 0.42);
   border-color: var(--honey);
@@ -521,11 +536,37 @@ ul.bullets b { color: var(--paper); }
 
 @media (max-width: 720px) {
   .sheet { padding: 22px 20px 20px; border-radius: 13px; }
-  .hud-left  { width: 168px; }
-  .hud-panel { font-size: 11px; padding: 9px 10px; }
-  #prompt { bottom: 168px; font-size: 12.5px; white-space: normal; text-align: center; width: min(320px, 78vw); }
-  #streak { bottom: 170px; }
+
+  /* Both gauge panels have to fit side by side on a phone without meeting in
+     the middle, and the toasts have to clear them instead of landing on top. */
+  .hud-panel { font-size: 10.5px; padding: 8px 9px; top: 10px; }
+  .hud-left  { left: 10px; width: 44vw; max-width: 172px; }
+  .hud-right { right: 10px; min-width: 0; width: 40vw; max-width: 158px; }
+  .gauge { margin-bottom: 6px; }
+  .gauge-label { font-size: 9px; }
+  .gauge-value { font-size: 10px; }
+  .bar { height: 7px; }
+
+  #toast-stack { top: auto; bottom: 250px; width: min(340px, 92vw); }
+  .toast { font-size: 12.5px; padding: 8px 13px; }
+
+  #prompt {
+    bottom: 200px;
+    font-size: 12.5px;
+    white-space: normal;
+    text-align: center;
+    width: min(330px, 84vw);
+  }
+  #streak { bottom: 202px; font-size: 11.5px; }
   #species-tag { display: none; }
+}
+
+/* Very short screens - a phone held sideways - cannot spare the vertical
+   room, so the toasts move back up out of the controls. */
+@media (max-height: 480px) {
+  #toast-stack { top: 8px; bottom: auto; }
+  #prompt { bottom: 96px; }
+  #streak { bottom: 98px; }
 }
 
 @media (max-height: 560px) {

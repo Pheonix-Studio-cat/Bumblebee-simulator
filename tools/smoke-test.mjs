@@ -43,7 +43,7 @@ function loadPlaywright() {
     '\nInstall it with:  npm i -g playwright');
   process.exit(2);
 }
-const { chromium } = loadPlaywright();
+const { chromium, devices } = loadPlaywright();
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -223,6 +223,70 @@ async function main() {
   }
 
   /* ---------------------------------------------------------------- 5 ---- */
+  /* Phone controls. A tap is only a few milliseconds long and can start and
+     finish entirely between two frames, so without a minimum hold the touch
+     buttons look completely dead to anyone playing on a phone. */
+  {
+    const context = await browser.newContext({ ...devices['Pixel 5'] });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+    page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+    await page.goto(indexUrl + '?species=terrestris&hour=11', { waitUntil: 'load' });
+    await page.waitForFunction('BB.Game.mode === "playing"', null, { timeout: 30000 });
+
+    const uiVisible = await page.evaluate(
+      '!document.getElementById("touch").classList.contains("hidden")');
+    check('touch controls appear on a phone', uiVisible);
+
+    /* Every action button has to be reachable and big enough to hit. */
+    for (const action of ['probe', 'buzz', 'sip', 'pause']) {
+      const box = await page.locator(`[data-action="${action}"]`).boundingBox();
+      const size = box ? Math.min(box.width, box.height) : 0;
+      const onScreen = box && box.y + box.height <= 727 && box.x >= 0;
+      check(`the ${action} button is on screen and tappable`, !!onScreen && size >= 44,
+        box ? `${box.width}x${box.height} at ${Math.round(box.x)},${Math.round(box.y)}` : 'missing');
+    }
+
+    await page.evaluate(`(() => {
+      const bee = BB.Game.bee;
+      bee.thoraxC = 34;
+      BB.Bee.setState(bee, 'FLYING');
+      bee.nectar = 80; bee.energy = 40;
+      window.__E0__ = bee.energy; window.__N0__ = bee.nectar;
+    })()`);
+
+    const sipBox = await page.locator('[data-action="sip"]').boundingBox();
+    await page.touchscreen.tap(sipBox.x + sipBox.width / 2, sipBox.y + sipBox.height / 2);
+    await page.waitForTimeout(320);
+    const sipped = await page.evaluate('window.__N0__ - BB.Game.bee.nectar');
+    check('a single tap on Sip actually drinks nectar', sipped > 0.5,
+      sipped.toFixed(2) + ' mg from one tap');
+
+    /* The same latch has to make a tap on Land register, or landing on a
+       flower is impossible with a thumb. */
+    await page.evaluate(`(() => {
+      const b = BB.Game.bee;
+      const f = BB.World.plants.find(p => p.type.nectarPool > 0 &&
+        b.species.tongueMm >= p.type.corollaDepthMm &&
+        BB.isInBloom(p.type, BB.World.hour) && !p.spider &&
+        p.x > 120 && p.x < BB.World.WIDTH - 120);
+      const a = BB.World.anchorWorld(f);
+      b.x = a.x; b.y = a.y - 6; b.vx = 0; b.vy = 0;
+    })()`);
+    const probeBox = await page.locator('[data-action="probe"]').boundingBox();
+    await page.touchscreen.tap(probeBox.x + probeBox.width / 2, probeBox.y + probeBox.height / 2);
+    await page.waitForTimeout(120);
+    const landed = await page.evaluate('BB.Game.bee.state');
+    check('a single tap on Land registers', landed === 'LANDING' || landed === 'LANDED',
+      'state ' + landed);
+
+    check('no console errors on a phone', errors.length === 0, errors.join(' | '));
+    if (wantShots) await page.screenshot({ path: join(shotDir, 'mobile.png') });
+    await context.close();
+  }
+
+  /* ---------------------------------------------------------------- 6 ---- */
   /* The sky has to actually change through the day. Screenshots at four hours
      double as the visual record. */
   if (wantShots) {

@@ -18,8 +18,36 @@
     touchActive: false
   };
 
-  var touch = { ax: 0, ay: 0, probe: false, buzz: false, sip: false };
+  var touch = { ax: 0, ay: 0 };
   var listeners = [];
+
+  /* Touch buttons need a minimum press length. A tap lasts a few milliseconds
+     and can begin and end entirely between two frames, so the game loop would
+     never see it and the button would look dead - which is exactly how a
+     phone player uses these controls. Latching each press for a fraction of a
+     second makes a tap do something visible, while holding still works
+     normally. */
+  var MIN_TOUCH_HOLD_MS = 240;
+  var touchDown = { probe: false, buzz: false, sip: false };
+  var touchHoldUntil = { probe: 0, buzz: 0, sip: 0 };
+
+  function nowMs() {
+    return (window.performance && window.performance.now)
+      ? window.performance.now() : Date.now();
+  }
+
+  function touchPress(action) {
+    touchDown[action] = true;
+    touchHoldUntil[action] = nowMs() + MIN_TOUCH_HOLD_MS;
+  }
+
+  function touchRelease(action) {
+    touchDown[action] = false;
+  }
+
+  function touchActive(action) {
+    return touchDown[action] || nowMs() < touchHoldUntil[action];
+  }
 
   /* Keys the page must not act on itself. */
   var SWALLOW = {
@@ -47,7 +75,10 @@
   function flush() {
     held = Object.create(null);
     touch.ax = touch.ay = 0;
-    touch.probe = touch.buzz = touch.sip = false;
+    ['probe', 'buzz', 'sip'].forEach(function (a) {
+      touchDown[a] = false;
+      touchHoldUntil[a] = 0;
+    });
     resetKnob();
   }
 
@@ -90,9 +121,9 @@
 
     state.ax = ax;
     state.ay = ay;
-    state.probe = isHeld('Space') || touch.probe;
-    state.buzz = isHeld('ShiftLeft', 'ShiftRight') || touch.buzz;
-    state.sip = isHeld('KeyQ') || touch.sip;
+    state.probe = isHeld('Space') || touchActive('probe');
+    state.buzz = isHeld('ShiftLeft', 'ShiftRight') || touchActive('buzz');
+    state.sip = isHeld('KeyQ') || touchActive('sip');
     state.anyHeld = Math.abs(ax) > 0.01 || Math.abs(ay) > 0.01 || state.probe || state.buzz;
   }
 
@@ -156,21 +187,23 @@
         if (action === 'pause') {
           pressQueue.KeyP = (pressQueue.KeyP || 0) + 1;
         } else {
-          touch[action] = true;
+          touchPress(action);
         }
-        e.preventDefault();
+        if (e) e.preventDefault();
       }
       function up(e) {
         btn.classList.remove('held');
-        if (action !== 'pause') touch[action] = false;
+        if (action !== 'pause') touchRelease(action);
         if (e) e.preventDefault();
       }
       btn.addEventListener('touchstart', down, { passive: false });
       btn.addEventListener('touchend', up, { passive: false });
       btn.addEventListener('touchcancel', up, { passive: false });
-      btn.addEventListener('mousedown', down);
-      btn.addEventListener('mouseup', up);
-      btn.addEventListener('mouseleave', up);
+      /* A touch device that also reports pointer events would otherwise fire
+         both paths and release the button immediately after pressing it. */
+      btn.addEventListener('mousedown', function (e) { if (!state.touchActive) down(e); });
+      btn.addEventListener('mouseup', function (e) { if (!state.touchActive) up(e); });
+      btn.addEventListener('mouseleave', function (e) { if (!state.touchActive) up(e); });
     });
   }
 

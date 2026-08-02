@@ -246,8 +246,8 @@
     BB.Hud.toast('Day ' + startDay + '. The brood needs ' + q.nectar + ' mg of nectar and ' +
       q.pollen + ' mg of pollen by dusk.', 'info');
     if (bee.thoraxC < BB.Bee.FLIGHT_TEMP) {
-      BB.Hud.toast('You are too cold to fly. Hold Shift to shiver your flight ' +
-        'muscles up to 30 °C.', 'info');
+      BB.Hud.toast('You are too cold to fly. Hold ' + BB.Hud.key('buzz') +
+        ' to shiver your flight muscles up to 30 °C.', 'info');
     }
   }
 
@@ -332,7 +332,7 @@
     if (bee.thoraxC < BB.Bee.FLIGHT_TEMP &&
       (bee.state === 'GROUNDED' || bee.state === 'LANDED')) {
       BB.Hud.setPrompt('Thorax ' + bee.thoraxC.toFixed(1) + ' °C – you need 30 °C to fly. ' +
-        'Hold <kbd>Shift</kbd> to shiver.', 'warn');
+        'Hold ' + BB.Hud.key('buzz') + ' to shiver.', 'warn');
       return;
     }
 
@@ -341,7 +341,7 @@
       var carrying = bee.nectar > 0.5 || bee.pollen > 0.05;
       var atNest = U.dist(bee.x, bee.y, W.nest.holeX, W.nest.holeY) < 110;
       if (!(atNest && carrying)) {
-        BB.Hud.setPrompt('Warm enough to fly. Press <kbd>W</kbd> to take off.');
+        BB.Hud.setPrompt('Warm enough to fly. Push ' + BB.Hud.key('up') + ' to take off.');
         return;
       }
     }
@@ -359,8 +359,8 @@
         return;
       }
       if (f.type.buzzPollinated) {
-        BB.Hud.setPrompt('No nectar here. Hold <kbd>Shift</kbd> to buzz the pollen loose.',
-          'warn');
+        BB.Hud.setPrompt('No nectar here. Hold ' + BB.Hud.key('buzz') +
+          ' to buzz the pollen loose.', 'warn');
         return;
       }
       if (f.nectar < 0.05) {
@@ -374,15 +374,15 @@
     }
 
     if (bee.energy / bee.energyMax < 0.25 && bee.nectar > 1) {
-      BB.Hud.setPrompt('Energy low. Hold <kbd>Q</kbd> to drink from your own honey stomach.',
-        'warn');
+      BB.Hud.setPrompt('Energy low. Hold ' + BB.Hud.key('sip') +
+        ' to drink from your own honey stomach.', 'warn');
       return;
     }
 
     var nest = W.nest;
     if (U.dist(bee.x, bee.y, nest.holeX, nest.holeY) < 110) {
       if (bee.nectar > 0.5 || bee.pollen > 0.05) {
-        BB.Hud.setPrompt('Hold <kbd>Space</kbd> to unload into the nest.');
+        BB.Hud.setPrompt('Hold ' + BB.Hud.key('probe') + ' to unload into the nest.');
       } else {
         BB.Hud.setPrompt('The nest. Come back here with a full load.');
       }
@@ -394,12 +394,12 @@
       var reachable = sp.tongueMm >= near.type.corollaDepthMm;
       var label = near.type.commonName + ' · corolla ' + near.type.corollaDepthMm + ' mm';
       if (near.type.buzzPollinated) {
-        BB.Hud.setPrompt(label + ' · buzz-pollinated · <kbd>Space</kbd> to land');
+        BB.Hud.setPrompt(label + ' · buzz-pollinated · hold ' + BB.Hud.key('probe'));
       } else if (reachable) {
-        BB.Hud.setPrompt(label + ' · within reach · <kbd>Space</kbd> to land');
+        BB.Hud.setPrompt(label + ' · within reach · hold ' + BB.Hud.key('probe'));
       } else if (sp.canRob) {
         BB.Hud.setPrompt(label + ' · too deep for your ' + sp.tongueMm +
-          ' mm tongue · land and hold <kbd>Space</kbd> to rob it', 'warn');
+          ' mm tongue · land and hold ' + BB.Hud.key('probe') + ' to rob it', 'warn');
       } else {
         BB.Hud.setPrompt(label + ' · too deep for your ' + sp.tongueMm + ' mm tongue', 'bad');
       }
@@ -491,7 +491,10 @@
 
     var onLeft = sx <= margin;
     var x = onLeft ? margin : cam.viewW - margin;
-    var y = U.clamp(sy, 110, cam.viewH - 130);
+    /* On a phone the bottom of the screen belongs to the thumb controls, so
+       the arrow has to stay well clear of them. */
+    var bottomGuard = BB.Input.state.touchActive ? 260 : 130;
+    var y = U.clamp(sy, 110, Math.max(120, cam.viewH - bottomGuard));
     var dist = Math.round(Math.abs(nest.holeX - bee.x));
     var carrying = bee.nectar > 0.5 || bee.pollen > 0.05;
 

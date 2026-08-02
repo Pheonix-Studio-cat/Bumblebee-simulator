@@ -225,6 +225,23 @@
       '</i> &middot; tongue ' + sp.tongueMm + ' mm &middot; lives ' + lives;
   }
 
+  /* Telling a phone player to "press Space" is useless - there is no Space key
+     in their hands. Every hint goes through here so it names whichever control
+     the player actually has. */
+  var KEY_LABELS = {
+    probe: 'Space', buzz: 'Shift', sip: 'Q', up: 'W', pause: 'P'
+  };
+  var TOUCH_LABELS = {
+    probe: 'Land &amp; feed', buzz: 'Buzz', sip: 'Sip nectar',
+    up: 'the stick upwards', pause: 'Pause'
+  };
+
+  function key(action) {
+    return BB.Input.state.touchActive
+      ? '<b>' + TOUCH_LABELS[action] + '</b>'
+      : '<kbd>' + KEY_LABELS[action] + '</kbd>';
+  }
+
   function setPrompt(text, kind) {
     var p = el.prompt;
     if (!text) { p.classList.add('hidden'); return; }
@@ -432,6 +449,7 @@
 
   BB.Hud = {
     init: init,
+    key: key,
     showScreen: showScreen,
     buildSpeciesCards: buildSpeciesCards,
     selectSpecies: selectSpecies,
