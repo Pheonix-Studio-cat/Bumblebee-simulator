@@ -10,3 +10,6 @@ package-lock.json
 .vscode/
 .idea/
 *.swp
+
+# Output of tools/build-single-file.mjs
+dist/
